@@ -1,0 +1,85 @@
+from machine import Pin , PWM
+from utime import sleep
+
+led = Pin("LED",Pin.OUT)
+button = Pin(19, Pin.IN, Pin.PULL_UP)
+
+#Left Motor
+ina1 = Pin(18, Pin.OUT)
+ina2 = Pin(17, Pin.OUT)
+pwma = PWM(Pin(16))
+
+#Right Motor
+inb1 = Pin(14, Pin.OUT)
+inb2 = Pin(15, Pin.OUT)
+pwmb = PWM(Pin(13))
+
+#Turn on LED to see program is working
+led.value(1)
+
+#Define motor pwm frequencies
+pwma.freq(1000)
+pwmb.freq(1000)
+
+def ARotateCW(duty):
+    ina1.value(0)
+    ina2.value(1)
+    duty_16 = int((duty*65536)/100)
+    pwma.duty_u16(duty_16)
+
+def ARotateCCW(duty):
+    ina1.value(1)
+    ina2.value(0)
+    duty_16 = int((duty*65536)/100)
+    pwma.duty_u16(duty_16)
+    
+def AStopMotor():
+    ina1.value(0)
+    ina2.value(0)
+    pwma.duty_u16(0)
+    
+def BRotateCW(duty):
+    inb1.value(1)
+    inb2.value(0)
+    duty_16 = int((duty*65536)/100)
+    pwmb.duty_u16(duty_16)
+
+def BRotateCCW(duty):
+    inb1.value(0)
+    inb2.value(1)
+    duty_16 = int((duty*65536)/100)
+    pwmb.duty_u16(duty_16)
+    
+def BStopMotor():
+    inb1.value(0)
+    inb2.value(0)
+    pwmb.duty_u16(0)
+    
+def BasicMovements(duty_cycle):
+    #Forwards
+    ARotateCCW(duty_cycle)
+    BRotateCW(duty_cycle)
+    sleep(2)
+    
+    #Backwards
+    ARotateCW(duty_cycle)
+    BRotateCCW(duty_cycle)
+    sleep(2)
+    
+    #Rotate Left
+    ARotateCW(duty_cycle)
+    BRotateCW(duty_cycle)
+    sleep(2)
+    
+    #Rotate Right
+    ARotateCCW(duty_cycle)
+    BRotateCCW(duty_cycle)
+    sleep(2)
+    
+    #Stop motors
+    AStopMotor()
+    BStopMotor()
+
+while True:
+    if not button.value():
+        BasicMovements(100)
