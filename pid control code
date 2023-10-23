@@ -4,6 +4,7 @@ import busio
 import digitalio
 import adafruit_vl6180x
 import adafruit_encoder
+import pwmio
 import adafruit_tca9548a
 
 # Initialize I2C
@@ -45,17 +46,28 @@ button_pressed = False
 # Threshold for stopping the motors
 threshold_distance = 60  # 60mm
 
+# Motor Definitions
+motor1_pwm = pwmio.PWMOut(board.GP13, frequency=1000, duty_cycle=0)
+motor1_direction1 = digitalio.DigitalInOut(board.GP14)
+motor1_direction1.direction = digitalio.Direction.OUTPUT
+motor1_direction2 = digitalio.DigitalInOut(board.GP15)
+motor1_direction2.direction = digitalio.Direction.OUTPUT
+
+motor2_pwm = pwmio.PWMOut(board.GP16, frequency=1000, duty_cycle=0)
+motor2_direction1 = digitalio.DigitalInOut(board.GP17)
+motor2_direction1.direction = digitalio.Direction.OUTPUT
+motor2_direction2 = digitalio.DigitalInOut(board.GP18)
+motor2_direction2.direction = digitalio.Direction.OUTPUT
+
 # Main function
 def main_function():
     while button.value:  # Check if the button is released to stop the function
         current_time = time.monotonic()
         elapsed_time = current_time - previous_time
 
-        distance1 = sensor1.range
-        distance2 = sensor2.range
-        distance3 = sensor3.range
+        distances = [sensor1.range, sensor2.range, sensor3.range]
 
-        if any(distance < threshold_distance for distance in (distance1, distance2, distance3)):
+        if any(distance < threshold_distance for distance in distances):
             # Stop the motors
             motor1_speed(0)
             motor2_speed(0)
@@ -89,13 +101,29 @@ def main_function():
 
 # Function to set the speed of motor 1
 def motor1_speed(speed):
-    # Implement code to control the speed of motor 1 using your motor controller
-    # This typically involves PWM and direction control pins
+    if speed > 0:
+        motor1_direction1.value = True  # Set direction 1 to forward
+        motor1_direction2.value = False  # Set direction 2 to forward
+        motor1_pwm.duty_cycle = int(speed / 100 * 65535)  # Map speed to PWM duty cycle
+    elif speed < 0:
+        motor1_direction1.value = False  # Set direction 1 to reverse
+        motor1_direction2.value = True  # Set direction 2 to reverse
+        motor1_pwm.duty_cycle = int(-speed / 100 * 65535)  # Map speed to PWM duty cycle
+    else:
+        motor1_pwm.duty_cycle = 0  # Stop the motor
 
 # Function to set the speed of motor 2
 def motor2_speed(speed):
-    # Implement code to control the speed of motor 2 using your motor controller
-    # This typically involves PWM and direction control pins
+    if speed > 0:
+        motor2_direction1.value = True  # Set direction 1 to forward
+        motor2_direction2.value = False  # Set direction 2 to forward
+        motor2_pwm.duty_cycle = int(speed / 100 * 65535)  # Map speed to PWM duty cycle
+    elif speed < 0:
+        motor2_direction1.value = False  # Set direction 1 to reverse
+        motor2_direction2.value = True  # Set direction 2 to reverse
+        motor2_pwm.duty_cycle = int(-speed / 100 * 65535)  # Map speed to PWM duty cycle
+    else:
+        motor2_pwm.duty_cycle = 0  # Stop the motor
 
 # Main loop
 while True:
