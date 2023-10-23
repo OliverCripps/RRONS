@@ -1,0 +1,106 @@
+import time
+import board
+import busio
+import digitalio
+import adafruit_vl6180x
+import adafruit_encoder
+import adafruit_tca9548a
+
+# Initialize I2C
+i2c = busio.I2C(board.SCL, board.SDA)
+
+# Create a TCA9548A I2C multiplexer object
+mux = adafruit_tca9548a.TCA9548A(i2c)
+
+# Initialize VL6180X sensors
+sensor1 = adafruit_vl6180x.VL6180X(mux[0])
+sensor2 = adafruit_vl6180x.VL6180X(mux[1])
+sensor3 = adafruit_vl6180x.VL6180X(mux[2])
+
+# Initialize encoders
+encoder1 = adafruit_encoder.RotaryEncoder(board.A2, board.A3)
+encoder2 = adafruit_encoder.RotaryEncoder(board.A4, board.A5)
+
+# Setpoint speed (in encoder counts per second)
+setpoint_speed = 100  # Adjust as needed
+
+# PID Constants
+kp = 0.1
+ki = 0.01
+kd = 0.01
+
+# Initial variables for PID control
+previous_time = time.monotonic()
+previous_error = 0
+integral = 0
+
+# Button setup
+button = digitalio.DigitalInOut(board.GP19)
+button.direction = digitalio.Direction.INPUT
+button.pull = digitalio.Pull.UP
+
+# Toggle button state
+button_pressed = False
+
+# Threshold for stopping the motors
+threshold_distance = 60  # 60mm
+
+# Main function
+def main_function():
+    while button.value:  # Check if the button is released to stop the function
+        current_time = time.monotonic()
+        elapsed_time = current_time - previous_time
+
+        distance1 = sensor1.range
+        distance2 = sensor2.range
+        distance3 = sensor3.range
+
+        if any(distance < threshold_distance for distance in (distance1, distance2, distance3)):
+            # Stop the motors
+            motor1_speed(0)
+            motor2_speed(0)
+        else:
+            if elapsed_time > 0:
+                # Read encoder counts
+                count1 = encoder1.position
+                count2 = encoder2.position
+
+                # Calculate the error
+                error = count1 - count2
+
+                # Calculate the PID components
+                proportional = kp * error
+                integral += ki * error * elapsed_time
+                derivative = kd * (error - previous_error) / elapsed_time
+
+                # Calculate the motor throttles using PID control
+                throttle = setpoint_speed + proportional + integral + derivative
+
+                # Set the motor speeds
+                motor1_speed(throttle)
+                motor2_speed(throttle)
+
+        previous_time = current_time
+        previous_error = error
+
+    # Ensure the motors are stopped when the function ends
+    motor1_speed(0)
+    motor2_speed(0)
+
+# Function to set the speed of motor 1
+def motor1_speed(speed):
+    # Implement code to control the speed of motor 1 using your motor controller
+    # This typically involves PWM and direction control pins
+
+# Function to set the speed of motor 2
+def motor2_speed(speed):
+    # Implement code to control the speed of motor 2 using your motor controller
+    # This typically involves PWM and direction control pins
+
+# Main loop
+while True:
+    if not button.value and not button_pressed:  # Button is pressed and not toggled
+        button_pressed = True
+        main_function()  # Call the main function when the button is pressed
+    elif button.value:  # Button is released
+        button_pressed = False
