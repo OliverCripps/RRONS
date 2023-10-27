@@ -25,18 +25,11 @@ led = digitalio.DigitalInOut(board.LED)
 led.switch_to_output()
 
 #Main Program
-start = True
-kp = 0.0025
-runonce = True
+start = False
 
 while True:
     if not button_pin.value:
         start = True
-        
-    if runonce:
-        leftspeed = 0.4
-        rightspeed = 0.4
-        runonce = False
 
     if start:
         if sensors.sensor2.range > 60:
