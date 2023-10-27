@@ -1,0 +1,48 @@
+import time
+import board
+import pwmio
+import digitalio
+import busio
+import adafruit_tca9548a
+import adafruit_vl6180x
+import motors
+import sensors
+
+#Define Left Motor Encoder
+encoder1_A = digitalio.DigitalInOut(board.GP21)
+encoder1_B = digitalio.DigitalInOut(board.GP20)
+
+#Define Right Motor Encoder
+encoder2_A = digitalio.DigitalInOut(board.GP11)
+encoder2_B = digitalio.DigitalInOut(board.GP12)
+
+#Define Button
+button_pin = digitalio.DigitalInOut(board.GP19)
+button_pin.switch_to_input(pull=digitalio.Pull.UP)
+
+#Define LED
+led = digitalio.DigitalInOut(board.LED)
+led.switch_to_output()
+
+#Main Program
+start = True
+kp = 0.0025
+runonce = True
+
+while True:
+    if not button_pin.value:
+        start = True
+        
+    if runonce:
+        leftspeed = 0.4
+        rightspeed = 0.4
+        runonce = False
+
+    if start:
+        if sensors.sensor2.range > 60:
+            motors.motors_forward()
+        else:
+            motors.stop_motors()
+
+    else:
+        motors.stop_motors()
