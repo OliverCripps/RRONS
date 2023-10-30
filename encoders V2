@@ -20,7 +20,7 @@ encoder2_A.pull = digitalio.Pull.UP
 encoder2_B.pull = digitalio.Pull.UP
 
 #Constants
-encoder_counts_per_revolution = 1000
+encoder_counts_per_revolution = 575
 
 motors.speed(0.31, 0.34)
 
