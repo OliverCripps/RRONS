@@ -1,0 +1,96 @@
+import digitalio
+import board
+import time
+import motors
+
+#Define pins for left encoder A and B channels
+encoder1_A = digitalio.DigitalInOut(board.GP12)
+encoder1_B = digitalio.DigitalInOut(board.GP11)
+encoder1_A.direction = digitalio.Direction.INPUT
+encoder1_B.direction = digitalio.Direction.INPUT
+encoder1_A.pull = digitalio.Pull.UP
+encoder1_B.pull = digitalio.Pull.UP
+
+#Define pins for right encoder A and B channels
+encoder2_A = digitalio.DigitalInOut(board.GP20)
+encoder2_B = digitalio.DigitalInOut(board.GP21)
+encoder2_A.direction = digitalio.Direction.INPUT
+encoder2_B.direction = digitalio.Direction.INPUT
+encoder2_A.pull = digitalio.Pull.UP
+encoder2_B.pull = digitalio.Pull.UP
+
+#Constants
+encoder_counts_per_revolution = 1000
+
+motors.speed(0.31, 0.34)
+
+def poll_encoders():
+    last_encoder1_state = (False, False)
+    last_encoder2_state = (False, False)
+    
+    current_time = time.monotonic()
+
+    #Initialize encoder counts for each interval
+    encoder1_count = 0
+    encoder2_count = 0
+
+    while time.monotonic() - current_time < 1.0:  # Measure pulses for 1 second
+        #Read the current state of encoder1 channels
+        encoder1_current_state = (encoder1_A.value, encoder1_B.value)
+
+        if encoder1_current_state != last_encoder1_state:
+            if last_encoder1_state == (False, False):
+                if encoder1_current_state == (False, True):
+                    encoder1_count += 1
+                else:
+                    encoder1_count -= 1
+            elif last_encoder1_state == (False, True):
+                if encoder1_current_state == (True, True):
+                    encoder1_count += 1
+                else:
+                    encoder1_count -= 1
+            elif last_encoder1_state == (True, True):
+                if encoder1_current_state == (True, False):
+                    encoder1_count += 1
+                else:
+                    encoder1_count -= 1
+            elif last_encoder1_state == (True, False):
+                if encoder1_current_state == (False, False):
+                    encoder1_count += 1
+                else:
+                    encoder1_count -= 1
+
+        last_encoder1_state = encoder1_current_state
+
+        #Read the current state of encoder2 channels
+        encoder2_current_state = (encoder2_A.value, encoder2_B.value)
+
+        if encoder2_current_state != last_encoder2_state:
+            if last_encoder2_state == (False, False):
+                if encoder2_current_state == (False, True):
+                    encoder2_count += 1
+                else:
+                    encoder2_count -= 1
+            elif last_encoder2_state == (False, True):
+                if encoder2_current_state == (True, True):
+                    encoder2_count += 1
+                else:
+                    encoder2_count -= 1
+            elif last_encoder2_state == (True, True):
+                if encoder2_current_state == (True, False):
+                    encoder2_count += 1
+                else:
+                    encoder2_count -= 1
+            elif last_encoder2_state == (True, False):
+                if encoder2_current_state == (False, False):
+                    encoder2_count += 1
+                else:
+                    encoder2_count -= 1
+
+        last_encoder2_state = encoder2_current_state
+
+    revs_per_second1 = encoder1_count / encoder_counts_per_revolution
+    revs_per_second2 = encoder2_count / encoder_counts_per_revolution
+
+    print("Encoder 1 Revolutions per Second: {}".format(revs_per_second1))
+    print("Encoder 2 Revolutions per Second: {}\n".format(revs_per_second2))
