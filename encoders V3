@@ -1,0 +1,85 @@
+import board
+import pulseio
+import time
+import motors
+
+# PID control parameters
+kp = 0.05  # Proportional gain (adjust as needed)
+ki = 0.002  # Integral gain (adjust as needed)
+kd = 0.001  # Derivative gain (adjust as needed)
+
+# Initialize variables for PID control for both motors
+error_integral_1 = 0
+error_integral_2 = 0
+previous_error_1 = 0
+previous_error_2 = 0
+setpoint = 0.7  # Target RPS
+
+# Initialize PWM values for both motors
+pwm_motor1 = 0.2  # Initial PWM value (adjust as needed)
+pwm_motor2 = 0.2  # Initial PWM value (adjust as needed)
+
+# Create pulsein objects to handle encoder pulses
+encoder_1_pulsein = pulseio.PulseIn(board.GP12, maxlen=200)
+encoder_2_pulsein = pulseio.PulseIn(board.GP20, maxlen=200)
+
+previous_time = time.monotonic()
+
+# Function to calculate RPM from encoder counts
+def calculate_rpm(count, time_interval):
+    if time_interval > 0:
+        rpm = (count / 360) / time_interval
+        return rpm
+    else:
+        return 0
+
+# Function for PID control
+def PID_control():
+    global pwm_motor1, pwm_motor2, error_integral_1, error_integral_2
+    global previous_error_1, previous_error_2, setpoint, previous_time
+    
+    current_time = time.monotonic()
+    time_interval = current_time - previous_time
+
+    if time_interval > 0:
+        count_1 = len(encoder_1_pulsein)
+        count_2 = len(encoder_2_pulsein)
+
+        rpm_1 = calculate_rpm(count_1, time_interval)
+        rpm_2 = calculate_rpm(count_2, time_interval)
+
+        print(f"Motor 1 RPS: {rpm_1:.2f} RPS")
+        print(f"Motor 2 RPS: {rpm_2:.2f} RPS")
+
+        error_1 = rpm_2 - rpm_1
+        error_2 = setpoint - rpm_2
+
+        error_integral_1 += error_1 * time_interval
+        error_integral_2 += error_2 * time_interval
+        error_derivative_1 = (error_1 - previous_error_1) / time_interval
+        error_derivative_2 = (error_2 - previous_error_2) / time_interval
+
+        control_output_1 = kp * error_1 + ki * error_integral_1 + kd * error_derivative_1
+        control_output_2 = kp * error_2 + ki * error_integral_2 + kd * error_derivative_2
+
+        pwm_motor1 += control_output_1
+        pwm_motor2 += control_output_2
+
+        pwm_motor1 = max(0.0, min(1.0, pwm_motor1))
+        pwm_motor2 = max(0.0, min(1.0, pwm_motor2))
+
+        motors.speed(pwm_motor1, pwm_motor2)
+
+        previous_time = current_time
+        previous_error_1 = error_1
+        previous_error_2 = error_2
+
+        encoder_1_pulsein.pause()
+        encoder_1_pulsein.clear()
+        encoder_1_pulsein.resume()
+
+        encoder_2_pulsein.pause()
+        encoder_2_pulsein.clear()
+        encoder_2_pulsein.resume()
+        
+    time.sleep(0.05)
